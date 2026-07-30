@@ -425,6 +425,13 @@
 const KEY    = "bxdb:v2";      // parts, products, variants (small — loads fast)
 const IMGKEY = "bxdb:img:v1";  // uploaded image data, kept separate so it never slows the index
 
+/* Read-only when served from GitHub Pages — that copy is a link handed to
+   other people, so it drops every editing control. Opened locally (file://,
+   localhost) the file stays fully editable, which is how the dataset is
+   maintained. Not a security boundary: storage is per-browser either way,
+   so nobody can reach anyone else's data. It just removes the footguns. */
+const READ_ONLY = /\.github\.io$/i.test(location.hostname);
+
 /* Storage runs on the best backend available:
      cloud  — window.storage, when running inside Claude
      idb    — IndexedDB, when you open this file locally (much more room)
@@ -2315,11 +2322,11 @@ function openDetail(id){
   const hero = `<div class="hero">${
     heroSrc ? `<img src="${esc(heroSrc)}" alt="${esc(p.name)}" data-action="zoom" data-src="${esc(heroSrc)}" data-cap="${esc(p.name)}" onerror="this.closest('.hero').classList.add('failed');this.remove()"/>`
             : partArt(p)
-  }<button class="heroadd" data-action="edit-part" data-id="${p.id}">${heroSrc?"Change photo":"+ Add photo"}</button></div>`;
+  }${READ_ONLY?"":`<button class="heroadd" data-action="edit-part" data-id="${p.id}">${heroSrc?"Change photo":"+ Add photo"}</button>`}</div>`;
 
   const vs = variantsFor(id);
   const vtable = vs.length ? `
-    <table class="vt"><thead><tr><th>Colour</th><th>Product</th><th>Combo</th><th>Rarity</th><th></th><th></th></tr></thead>
+    <table class="vt"><thead><tr><th>Colour</th><th>Product</th><th>Combo</th><th>Rarity</th><th></th>${READ_ONLY?"":"<th></th>"}</tr></thead>
     <tbody>${vs.map(v=>{
       const m=db.productMeta[v.productCode]||{name:v.productCode,type:"",date:""};
       return `<tr>
@@ -2340,7 +2347,7 @@ function openDetail(id){
           return `<a class="vsrc k-${vf.kind}" href="${vf.url}" target="_blank" rel="noopener noreferrer" title="${tip}">${
             vf.kind==="package" ? "&#8599;" : vf.kind==="part" ? "&#8901;&#8599;" : "&#63;"}</a>`;
         })()}</td>
-        <td><button class="vdel" data-action="del-variant" data-id="${v.id}" title="Remove">✕</button></td>
+        ${READ_ONLY?"":`<td><button class="vdel" data-action="del-variant" data-id="${v.id}" title="Remove">✕</button></td>`}
       </tr>`;
     }).join("")}</tbody></table>` :
     `<div style="color:var(--muted);font-size:12px;padding:4px 0 8px">No variants recorded yet.</div>`;
@@ -2359,11 +2366,11 @@ function openDetail(id){
      ${stats}
      <div class="sectitle">Colour variants &amp; packaging (${vs.length})</div>
      ${vtable}
-     <div class="drawer-actions">
+     ${READ_ONLY?"":`<div class="drawer-actions">
        <button class="btn primary" data-action="add-variant" data-id="${id}">+ Variant</button>
        <button class="btn" data-action="edit-part" data-id="${id}">Edit part</button>
        <button class="btn ghost danger" data-action="del-part" data-id="${id}">Delete</button>
-     </div>`;
+     </div>`}`;
 
   $("#scrim").classList.add("show");
   $("#drawer").classList.add("show");
@@ -2700,9 +2707,16 @@ function mergeImport(data){
 /* ============================================================
    Events
    ============================================================ */
+/* Everything that writes. The read-only build removes the buttons outright,
+   so this is belt-and-braces: it keeps behaviour coherent if one of these is
+   reached some other way (a stale node, the console). */
+const MUTATING = new Set(["add-part","edit-part","del-part","add-variant","del-variant",
+                          "save-part","save-variant","import","reset","pick-img","clear-img"]);
+
 document.addEventListener("click",e=>{
   const el=e.target.closest("[data-action]"); if(!el) return;
   const a=el.dataset.action, val=el.dataset.val, id=el.dataset.id;
+  if(READ_ONLY && MUTATING.has(a)) return;
   switch(a){
     case "view": ui.view=val; render(); break;
     case "kind": ui.kind=val; render(); break;
@@ -2752,8 +2766,8 @@ function setRowImage(target, id, ref, tile){
   if(tile) tile.innerHTML = src ? `<img src="${esc(src)}" alt=""/>` : "+";
 }
 
-$("#importFile").addEventListener("change",e=>{ if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=""; });
-$("#imgFile").addEventListener("change",e=>{ if(e.target.files[0]) acceptImageFile(e.target.files[0]); e.target.value=""; });
+$("#importFile")?.addEventListener("change",e=>{ if(READ_ONLY) return; if(e.target.files[0]) importJSON(e.target.files[0]); e.target.value=""; });
+$("#imgFile")?.addEventListener("change",e=>{ if(READ_ONLY) return; if(e.target.files[0]) acceptImageFile(e.target.files[0]); e.target.value=""; });
 $("#search").addEventListener("input",e=>{ ui.q=e.target.value; render(); });
 document.addEventListener("keydown",e=>{
   if(e.key!=="Escape") return;
@@ -2766,6 +2780,16 @@ document.addEventListener("keydown",e=>{
    Init
    ============================================================ */
 (async function init(){
+  /* Strip the editing chrome before the first paint. The buttons sit in a
+     flex .toolbar, so they are removed by selector rather than wrapped —
+     nesting a container would change the layout. */
+  if(READ_ONLY){
+    document.querySelectorAll(
+      '[data-action="add-part"],[data-action="export"],[data-action="export-links"],' +
+      '[data-action="import"],[data-action="reset"],#meter,#importFile,#imgFile'
+    ).forEach(el=>el.remove());
+  }
+
   await detectBackend();
   const [loaded, loadedImgs] = await Promise.all([ store.load(KEY), store.load(IMGKEY) ]);
   imgs = loadedImgs || {};
@@ -2776,7 +2800,7 @@ document.addEventListener("keydown",e=>{
 
   updateMeter();
   render();
-  if(backend === "memory") toast("Storage unavailable — export before closing");
+  if(backend === "memory" && !READ_ONLY) toast("Storage unavailable — export before closing");
   else if(loaded && stale) toast("Parts data updated to "+db.parts.length+" parts");
 })();
 </script>
