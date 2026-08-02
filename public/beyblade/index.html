@@ -142,6 +142,36 @@
   .card .vcount{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:10px;color:var(--muted)}
   .card .vcount b{color:var(--accent)}
 
+  /* ---------- Collection ---------- */
+  .card .owncount{
+    position:absolute;top:10px;left:10px;z-index:1;
+    font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.04em;
+    padding:2px 6px;border-radius:2px;
+    background:var(--accent);color:#06231f;
+  }
+  .card.unowned{opacity:.45;border-style:dashed}
+  .card.unowned:hover{opacity:.8}
+
+  .stepper{display:inline-flex;align-items:center;gap:1px;vertical-align:middle}
+  .stepper button{
+    font-family:var(--mono);font-size:12px;line-height:1;cursor:pointer;
+    width:20px;height:20px;padding:0;
+    background:var(--surface-2);color:var(--muted);
+    border:1px solid var(--line-2);border-radius:2px;transition:.12s;
+  }
+  .stepper button:hover{border-color:var(--accent-dim);color:var(--accent)}
+  .stepper b{
+    font-family:var(--mono);font-size:11.5px;min-width:20px;text-align:center;
+    color:var(--muted);
+  }
+  .stepper.has b{color:var(--accent)}
+  .owntotal{font-family:var(--mono);font-size:11px;color:var(--muted);padding:8px 0 2px}
+  .owntotal b{color:var(--accent)}
+  .pill.own{border-color:var(--accent-dim);color:var(--accent)}
+  /* .ctot already claims the free space, so the stepper trails it on the right;
+     with no assembled weight to show, the stepper claims it instead. */
+  .chead .stepper{margin-left:auto}
+
   .pill{font-family:var(--mono);font-size:10px;letter-spacing:.04em;padding:2px 7px;border-radius:2px;border:1px solid var(--line-2);color:var(--muted)}
   .pill.type{border:none;font-weight:700}
   .pill.type.attack{background:rgba(255,82,87,.14);color:var(--atk)}
@@ -387,6 +417,11 @@
     <button class="chip" data-action="system" data-val="BX">BX · Basic</button>
     <button class="chip" data-action="system" data-val="UX">UX · Unique</button>
     <button class="chip" data-action="system" data-val="CX">CX · Custom</button>
+    <span class="chip" style="cursor:default;pointer-events:none;opacity:.3">|</span>
+    <span class="lbl">Collection</span>
+    <button class="chip active" data-action="own" data-val="all">All</button>
+    <button class="chip" data-action="own" data-val="owned">Owned</button>
+    <button class="chip" data-action="own" data-val="missing">Missing</button>
   </div>
 
   <main>
@@ -424,12 +459,15 @@
    ============================================================ */
 const KEY    = "bxdb:v2";      // parts, products, variants (small — loads fast)
 const IMGKEY = "bxdb:img:v1";  // uploaded image data, kept separate so it never slows the index
+const OWNKEY = "bxdb:own:v1";  // how many of each variant you own — yours, not part of the dataset
 
 /* Read-only when served from GitHub Pages — that copy is a link handed to
    other people, so it drops every editing control. Opened locally (file://,
    localhost) the file stays fully editable, which is how the dataset is
    maintained. Not a security boundary: storage is per-browser either way,
-   so nobody can reach anyone else's data. It just removes the footguns. */
+   so nobody can reach anyone else's data. It just removes the footguns.
+
+   Collection tracking is the one deliberate exception — see MUTATING. */
 const READ_ONLY = /\.github\.io$/i.test(location.hostname);
 
 /* Storage runs on the best backend available:
@@ -1345,7 +1383,26 @@ function seed(){
    ============================================================ */
 let db   = { parts:[], productMeta:{}, variants:[] };
 let imgs = {};  // "i:abc" -> compressed data URL
-const ui = { view:"parts", kind:"all", system:"all", q:"", selected:null };
+let owned = {}; // variant key -> how many you own (see below)
+const ui = { view:"parts", kind:"all", system:"all", own:"all", q:"", selected:null };
+
+/* --- Variant identity ---------------------------------------
+   A variant's `id` is positional — seed() hands out "v1", "v2", …
+   in source order, so inserting one variant renumbers every later
+   one. Anything that has to survive a dataset rebuild is therefore
+   keyed by what the variant *is*, not by its id.
+
+   The exact key includes the colourway; the loose key drops it,
+   because my colour wording changes far more often than the combo
+   spec does. migrate() carries photos across with this pair, and
+   reconcileOwned() carries your collection across the same way.
+   ------------------------------------------------------------ */
+const vKeyExact = v => v.partId+"|"+v.productCode+"|"+(v.combo||"")+"|"+(v.color||"");
+const vKeyLoose = v => v.partId+"|"+v.productCode+"|"+(v.combo||"");
+
+/* A part with no variants at all (Wyvern Hover, plus anything you add
+   yourself) still needs somewhere to put a count. */
+const pKey = id => "part:" + id;
 
 /* --- Image references -------------------------------------
    A part/variant .img is one of:
@@ -1431,6 +1488,150 @@ function save(){
   store.save(IMGKEY, imgs);
   updateMeter();
 }
+
+/* ============================================================
+   Your collection.
+   `owned` maps a variant key to how many of that exact colourway
+   you have. Zero is never stored — an absent key *is* zero, which
+   keeps the map the size of your collection rather than the size
+   of the catalogue.
+
+   It lives under its own storage key, so a seed upgrade, an Import
+   or a Reset can rebuild the whole dataset underneath it without
+   touching what you own. saveOwned() writes only that key: ticking
+   a box shouldn't rewrite the 150 KB dataset blob.
+   ============================================================ */
+function saveOwned(){ ownIndex = null; store.save(OWNKEY, owned); }
+const ownOf = key => owned[key] || 0;
+function setOwn(key, n){
+  n = Math.max(0, Math.floor(n) || 0);
+  if(n) owned[key] = n; else delete owned[key];
+  saveOwned();
+  return n;
+}
+const bumpOwn = (key, d) => setOwn(key, ownOf(key) + d);
+
+/* partId -> total owned across every colourway, built once and reused.
+   Rendering the grid asks this 230 times; resolving each part's variants
+   from scratch would walk all 666 records every time. Dropped by
+   saveOwned(), so it can never outlive the counts it was built from. */
+let ownIndex = null;
+function ownByPart(){
+  if(ownIndex) return ownIndex;
+  ownIndex = {};
+  const add = (id,n) => { if(n) ownIndex[id] = (ownIndex[id]||0) + n; };
+  db.variants.forEach(v=> add(v.partId, ownOf(vKeyExact(v))));
+  Object.keys(owned).forEach(k=>{ if(k.startsWith("part:")) add(k.slice(5), owned[k]); });
+  return ownIndex;
+}
+const partOwned = p => ownByPart()[p.id] || 0;
+
+/* How much of one release you have: contents owned out of contents in the box. */
+function productOwned(code, items){
+  const vs = items || db.variants.filter(v=>v.productCode===code);
+  return { have: vs.filter(v=>ownOf(vKeyExact(v))>0).length, total: vs.length };
+}
+/* Until you've recorded anything, the collection UI stays out of the way —
+   otherwise a first run paints every card as "missing", which reads as broken. */
+const hasCollection = () => Object.keys(owned).length > 0;
+
+/* Re-home counts after a dataset rebuild. Keys that still name a real
+   variant are left alone; the rest fall back to the combo spec, matching
+   how migrate() carries photos. Anything that matches nothing is kept —
+   it costs a few bytes and may well match again after the next update. */
+function reconcileOwned(){
+  const exact = new Set(db.variants.map(vKeyExact));
+  const byLoose = {};
+  db.variants.forEach(v=>{ const l=vKeyLoose(v); if(!(l in byLoose)) byLoose[l]=vKeyExact(v); });
+  const parts = new Set(db.parts.map(p=>pKey(p.id)));
+  let moved = 0;
+  Object.keys(owned).forEach(k=>{
+    if(exact.has(k) || parts.has(k)) return;
+    const target = byLoose[k.split("|").slice(0,3).join("|")];
+    if(!target || target === k) return;
+    owned[target] = (owned[target]||0) + owned[k];
+    delete owned[k];
+    moved++;
+  });
+  if(moved) saveOwned();
+  return moved;
+}
+
+/* One [− n +] control. The key travels on the button, so the same markup
+   works in the drawer, in a product's combo list, and for a loose part. */
+function stepperHTML(key, cls){
+  const n = ownOf(key), k = esc(key);
+  return `<span class="stepper${n?" has":""}${cls?" "+cls:""}" data-ownkey="${k}">`
+    + `<button data-action="own-dec" data-ownkey="${k}" title="One fewer">&minus;</button>`
+    + `<b>${n}</b>`
+    + `<button data-action="own-inc" data-ownkey="${k}" title="One more">+</button>`
+    + `</span>`;
+}
+
+/* Read every visible stepper back out of `owned`. */
+function syncSteppers(root){
+  (root||document).querySelectorAll(".stepper[data-ownkey]").forEach(s=>{
+    const n = ownOf(s.dataset.ownkey);
+    s.querySelector("b").textContent = n;
+    s.classList.toggle("has", n>0);
+  });
+}
+
+/* Repaint after a count changes, without rebuilding what the finger is on.
+   openDetail() would work but resets the drawer's scroll mid-tap, and
+   renderProducts() rebuilds all 92 releases — both feel broken on a phone. */
+function refreshOwnUI(btn){
+  const step = btn.closest(".stepper");
+  if(step) syncSteppers(step.parentNode);
+
+  const total = $("#d-owntotal");
+  if(total && ui.selected){
+    const p = partById(ui.selected);
+    if(p) total.innerHTML = `In your collection: <b>${partOwned(p)}</b>`;
+  }
+
+  /* In the products view, touch only the release that changed. Anywhere
+     else — including the drawer opened from a product's part chip — fall
+     back to a full render for the badges, dimming and Owned/Missing filter. */
+  const prod = ui.view === "products" ? btn.closest(".prod") : null;
+  if(prod) refreshProductOwn(prod); else render();
+}
+
+/* --- Whole boxes ---------------------------------------------
+   Most releases give you everything in them, so "I bought this
+   box" should be one tap rather than one tap per part. The number
+   shown is how many complete boxes you have: the smallest count
+   across the release's contents.
+
+   Random Boosters are excluded — you get one combo out of eight,
+   not all eight — and so are the -00 catch-all codes, which stand
+   in for many separately-sold items. Both use the per-combo
+   steppers instead.
+   ------------------------------------------------------------ */
+const BOXABLE = t => t && t!=="Random Booster" && t!=="Special";
+
+function boxesOwned(code, items){
+  const vs = items || db.variants.filter(v=>v.productCode===code);
+  if(!vs.length) return 0;
+  return vs.reduce((m,v)=>Math.min(m, ownOf(vKeyExact(v))), Infinity);
+}
+function bumpBox(code, d){
+  db.variants.filter(v=>v.productCode===code)
+             .forEach(v=>bumpOwn(vKeyExact(v), d));
+}
+function refreshProductOwn(prod){
+  const code = prod.dataset.code;
+  syncSteppers(prod);
+  const { have, total } = productOwned(code);
+  const pill = prod.querySelector(".ownpill");
+  if(pill) pill.textContent = "owned " + have + "/" + total;
+  const box = prod.querySelector(".boxstep");
+  if(box){
+    const n = boxesOwned(code);
+    box.querySelector("b").textContent = n;
+    box.classList.toggle("has", n>0);
+  }
+}
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 
 const TYPE_COLORS = {Attack:"var(--atk)",Defense:"var(--def)",Stamina:"var(--sta)",Balance:"var(--bal)"};
@@ -1482,16 +1683,14 @@ function migrate(oldDb){
   //    combo spec, which is far more stable than my colour wording. Only
   //    photos are carried across; the seed's own facts win. Anything that
   //    matches nothing is kept as a variant of yours.
-  const exact = v => v.partId+"|"+v.productCode+"|"+(v.combo||"")+"|"+(v.color||"");
-  const loose = v => v.partId+"|"+v.productCode+"|"+(v.combo||"");
   const byExact = {}, byLoose = {};
   fresh.variants.forEach(v=>{
-    byExact[exact(v)] = v;
-    if(!(loose(v) in byLoose)) byLoose[loose(v)] = v;
+    byExact[vKeyExact(v)] = v;
+    if(!(vKeyLoose(v) in byLoose)) byLoose[vKeyLoose(v)] = v;
   });
   let nextId = fresh.variants.length;
   (oldDb.variants||[]).forEach(v=>{
-    const match = byExact[exact(v)] || byLoose[loose(v)];
+    const match = byExact[vKeyExact(v)] || byLoose[vKeyLoose(v)];
     if(match){ if(v.img && !match.img) match.img = v.img; }
     else { fresh.variants.push({...v, id:"u"+(++nextId)}); }
   });
@@ -1704,6 +1903,7 @@ function partArt(p){
 function matches(p){
   if(ui.kind!=="all" && p.kind!==ui.kind) return false;
   if(ui.system!=="all" && p.system!==ui.system) return false;
+  if(ui.own!=="all" && (partOwned(p)>0) !== (ui.own==="owned")) return false;
   if(ui.q){
     const q=ui.q.toLowerCase();
     const hay=[p.name,p.fullName,p.bladeType,p.bitType,p.system,p.debut,KIND_LABEL[p.kind]].filter(Boolean).join(" ").toLowerCase();
@@ -1718,6 +1918,7 @@ function render(){
   // filter active states
   document.querySelectorAll('[data-action="kind"]').forEach(b=>b.classList.toggle("active",b.dataset.val===ui.kind));
   document.querySelectorAll('[data-action="system"]').forEach(b=>b.classList.toggle("active",b.dataset.val===ui.system));
+  document.querySelectorAll('[data-action="own"]').forEach(b=>b.classList.toggle("active",b.dataset.val===ui.own));
   document.querySelectorAll('[data-action="view"]').forEach(b=>b.classList.toggle("active",b.dataset.val===ui.view));
   $("#filters").style.display = (ui.view==="parts") ? "flex" : "none";
 
@@ -1963,7 +2164,9 @@ function renderParts(){
   const list = db.parts.filter(matches);
   const order = {blade:0,ratchet:1,bit:2,lockchip:3,mainblade:4,assistblade:5,metalblade:6,overblade:7};
   list.sort((a,b)=> (order[a.kind]-order[b.kind]) || a.name.localeCompare(b.name,undefined,{numeric:true}));
-  $("#count").textContent = list.length + " / " + db.parts.length + " parts";
+  const collected = hasCollection() ? db.parts.filter(p=>partOwned(p)>0).length : 0;
+  $("#count").textContent = list.length + " / " + db.parts.length + " parts"
+    + (hasCollection() ? " · " + collected + " owned" : "");
 
   if(!list.length){ $("#view").innerHTML = `<div class="empty"><b>No parts match</b>Try clearing the search or filters, or add a new part.</div>`; return; }
 
@@ -1997,7 +2200,13 @@ function cardHTML(p){
         : partArt(p)
   }</div>`;
 
-  return `<div class="card ${typeClass(p)}" data-action="open" data-id="${p.id}">
+  /* The collection only starts colouring the grid once you've recorded
+     something — before that, every card would read as "missing". */
+  const have = partOwned(p);
+  const dim  = hasCollection() && !have ? " unowned" : "";
+
+  return `<div class="card ${typeClass(p)}${dim}" data-action="open" data-id="${p.id}">
+    ${have?`<div class="owncount">&times;${have}</div>`:""}
     ${vc?`<div class="vcount"><b>${vc}</b> var</div>`:""}
     ${thumb}
     <div class="kind">${esc(kindLabel)}</div>
@@ -2192,6 +2401,7 @@ function renderProducts(){
           ${c.variant.color && c.variant.color!=="Standard" ? `<span class="ccol">${esc(c.variant.color)}</span>` : ""}
           ${rar}
           ${c.totalG!=null ? `<span class="ctot">${c.totalG} g assembled</span>` : ""}
+          ${stepperHTML(vKeyExact(c.variant))}
         </div>
         <div class="cparts">${chips}</div>
       </div>`;
@@ -2228,13 +2438,23 @@ function renderProducts(){
         }</div>`;
 
     const src = kyogankenURL(code);
-    return `<div class="prod">
+    const own = productOwned(code, items);
+    const ownPill = own.total
+      ? `<span class="pill own ownpill">owned ${own.have}/${own.total}</span>` : "";
+    const nBox = boxesOwned(code, items);
+    const boxStep = (own.total && BOXABLE(m.type))
+      ? `<span class="stepper boxstep${nBox?" has":""}" title="How many of this release you have">
+           <button data-action="box-dec" data-code="${esc(code)}">&minus;</button><b>${nBox}</b><button data-action="box-inc" data-code="${esc(code)}">+</button>
+         </span>` : "";
+
+    return `<div class="prod" data-code="${esc(code)}">
       <div class="phead">
         <span class="pill code">${esc(code)}</span>
         <span class="pn">${esc(m.name)}</span>
         <span class="pill">${esc(m.type||"—")}</span>
         ${m.price?`<span class="pill price">¥${m.price.toLocaleString()}</span>`:""}
         ${combos.length>1?`<span class="pill">${combos.length} combos</span>`:""}
+        ${ownPill}${boxStep}
         <span class="pd">${esc(m.date||"—")}</span>
         ${src?`<a class="psrc" href="${src}" target="_blank" rel="noopener noreferrer" title="Open ${esc(code)} on kyoganken">&#8599;</a>`:""}
       </div>
@@ -2328,7 +2548,7 @@ function openDetail(id){
 
   const vs = variantsFor(id);
   const vtable = vs.length ? `
-    <table class="vt"><thead><tr><th>Colour</th><th>Product</th><th>Combo</th><th>Rarity</th><th></th>${READ_ONLY?"":"<th></th>"}</tr></thead>
+    <table class="vt"><thead><tr><th>Colour</th><th>Product</th><th>Combo</th><th>Rarity</th><th>Owned</th><th></th>${READ_ONLY?"":"<th></th>"}</tr></thead>
     <tbody>${vs.map(v=>{
       const m=db.productMeta[v.productCode]||{name:v.productCode,type:"",date:""};
       return `<tr>
@@ -2341,6 +2561,7 @@ function openDetail(id){
         <td style="font-family:var(--mono)">${esc(v.combo||"—")}${
           v.weightG!=null?`<div class="vw">${v.weightG} g measured</div>`:""}</td>
         <td>${v.rarity!=="Standard"?`<span class="rar ${v.rarity}">${v.rarity}</span>`:`<span style="color:var(--muted);font-size:10px">std</span>`}</td>
+        <td>${stepperHTML(vKeyExact(v))}</td>
         <td>${(()=>{ const vf=findVariantURL(p,v);
           const label = p.kind==="bit" && p.fullName ? p.fullName : p.name;
           const tip = vf.kind==="package" ? "Open this release on "+hostLabel(vf.url)
@@ -2352,7 +2573,12 @@ function openDetail(id){
         ${READ_ONLY?"":`<td><button class="vdel" data-action="del-variant" data-id="${v.id}" title="Remove">✕</button></td>`}
       </tr>`;
     }).join("")}</tbody></table>` :
-    `<div style="color:var(--muted);font-size:12px;padding:4px 0 8px">No variants recorded yet.</div>`;
+    /* Nothing to hang a colourway count on, so offer a loose one instead. */
+    `<div style="color:var(--muted);font-size:12px;padding:4px 0 8px">No variants recorded yet.</div>
+     <div class="owntotal">How many you own: ${stepperHTML(pKey(id))}</div>`;
+
+  const owntotal = vs.length
+    ? `<div class="owntotal" id="d-owntotal">In your collection: <b>${partOwned(p)}</b></div>` : "";
 
   const heroFind = findPartURL(p);
   const srcLine = `<div class="srcline">${
@@ -2368,6 +2594,7 @@ function openDetail(id){
      ${stats}
      <div class="sectitle">Colour variants &amp; packaging (${vs.length})</div>
      ${vtable}
+     ${owntotal}
      ${READ_ONLY?"":`<div class="drawer-actions">
        <button class="btn primary" data-action="add-variant" data-id="${id}">+ Variant</button>
        <button class="btn" data-action="edit-part" data-id="${id}">Edit part</button>
@@ -2627,7 +2854,7 @@ function exportLinksCSV(){
 
 function exportJSON(){
   gcImages();
-  const blob=new Blob([JSON.stringify({...db, images:imgs},null,2)],{type:"application/json"});
+  const blob=new Blob([JSON.stringify({...db, images:imgs, owned},null,2)],{type:"application/json"});
   const a=document.createElement("a");
   a.href=URL.createObjectURL(blob);
   a.download="beyblade-x-parts.json";
@@ -2660,9 +2887,13 @@ function importJSON(file){
 
 function replaceImport(data){
   imgs = data.images || {};
-  const {images, ...rest} = data;
+  const {images, owned:ownedIn, ...rest} = data;
   db = Object.assign({parts:[],productMeta:{},variants:[]}, rest);
   db.seedVersion = SEED_VERSION;
+  /* A file with no `owned` block is a dataset, not a backup of your
+     collection — leave what you own alone rather than wiping it. */
+  if(ownedIn) Object.assign(owned, ownedIn);
+  reconcileOwned(); saveOwned();
   save(); closeDetail(); render();
   toast("Replaced with " + db.parts.length + " parts");
 }
@@ -2673,6 +2904,7 @@ function mergeImport(data){
   let addedP=0, updatedP=0, addedV=0, addedProd=0;
 
   Object.assign(imgs, data.images || {});
+  if(data.owned) Object.assign(owned, data.owned);
 
   (data.parts||[]).forEach(np=>{
     const cur = partById(np.id);
@@ -2702,6 +2934,7 @@ function mergeImport(data){
     if(!db.productMeta[code]){ db.productMeta[code]=data.productMeta[code]; addedProd++; }
   });
 
+  reconcileOwned(); saveOwned();
   save(); closeDetail(); render();
   toast(`Merged: +${addedP} parts, +${addedV} variants, +${addedProd} products`);
 }
@@ -2709,9 +2942,15 @@ function mergeImport(data){
 /* ============================================================
    Events
    ============================================================ */
-/* Everything that writes. The read-only build removes the buttons outright,
-   so this is belt-and-braces: it keeps behaviour coherent if one of these is
-   reached some other way (a stale node, the console). */
+/* Everything that writes to the dataset. The read-only build removes the
+   buttons outright, so this is belt-and-braces: it keeps behaviour coherent
+   if one of these is reached some other way (a stale node, the console).
+
+   The collection actions (own-inc, own-dec, box-inc, box-dec) are deliberately
+   absent, so they keep working on the hosted copy. They write to bxdb:own:v1,
+   which is per-browser: a visitor's collection is theirs alone and can't touch
+   the dataset or anyone else's data. Being able to tick parts off on a phone
+   is the whole point of the feature. */
 const MUTATING = new Set(["add-part","edit-part","del-part","add-variant","del-variant",
                           "save-part","save-variant","import","reset","pick-img","clear-img"]);
 
@@ -2723,6 +2962,11 @@ document.addEventListener("click",e=>{
     case "view": ui.view=val; render(); break;
     case "kind": ui.kind=val; render(); break;
     case "system": ui.system=val; render(); break;
+    case "own": ui.own=val; render(); break;
+    case "own-inc": bumpOwn(el.dataset.ownkey,  1); refreshOwnUI(el); break;
+    case "own-dec": bumpOwn(el.dataset.ownkey, -1); refreshOwnUI(el); break;
+    case "box-inc": bumpBox(el.dataset.code,  1); refreshOwnUI(el); break;
+    case "box-dec": bumpBox(el.dataset.code, -1); refreshOwnUI(el); break;
     case "open": openDetail(id); break;
     case "close-detail": closeDetail(); break;
     case "add-part": partForm(null); break;
@@ -2793,12 +3037,15 @@ document.addEventListener("keydown",e=>{
   }
 
   await detectBackend();
-  const [loaded, loadedImgs] = await Promise.all([ store.load(KEY), store.load(IMGKEY) ]);
-  imgs = loadedImgs || {};
+  const [loaded, loadedImgs, loadedOwned] = await Promise.all([
+    store.load(KEY), store.load(IMGKEY), store.load(OWNKEY)
+  ]);
+  imgs  = loadedImgs  || {};
+  owned = loadedOwned || {};
 
   const stale = !loaded || loaded.seedVersion !== SEED_VERSION;
   db = stale ? migrate(loaded) : loaded;
-  if(stale) save();
+  if(stale){ save(); reconcileOwned(); }
 
   updateMeter();
   render();
