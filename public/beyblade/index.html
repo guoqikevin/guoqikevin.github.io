@@ -195,6 +195,7 @@
   .vrow .vn{font-weight:500;cursor:pointer}
   .vrow .vn:hover{color:var(--accent)}
   .vrow .vc{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .vrow .stepper{margin-left:auto}
 
   /* ---------- Detail drawer ---------- */
   .scrim{position:fixed;inset:0;background:rgba(4,6,10,.6);opacity:0;pointer-events:none;transition:.18s;z-index:40}
@@ -241,7 +242,10 @@
   .chead .cname{font-family:var(--display);font-weight:600;font-size:14.5px;letter-spacing:.02em}
   .chead .ccol{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
   .chead .ctot{font-family:var(--mono);font-size:10.5px;color:var(--sta);margin-left:auto}
-  .cparts{display:flex;flex-wrap:wrap;gap:5px}
+  /* A chip and its count are one unit, so a narrow window wraps them
+     together rather than orphaning a stepper on the next line. */
+  .cparts{display:flex;flex-wrap:wrap;gap:6px 10px}
+  .cslot{display:inline-flex;align-items:center;gap:4px}
   .cchip{
     font-family:var(--mono);font-size:10.5px;letter-spacing:.02em;cursor:pointer;
     padding:3px 8px;border-radius:2px;border:1px solid var(--line-2);
@@ -1404,6 +1408,22 @@ const vKeyLoose = v => v.partId+"|"+v.productCode+"|"+(v.combo||"");
    yourself) still needs somewhere to put a count. */
 const pKey = id => "part:" + id;
 
+/* The count each part of a combo writes to, in the same order as the parts.
+
+   The anchor uses its own variant rather than a lookup: one product can hold
+   two combos built on the same blade (Black Shell twice in BX-35), and a
+   partId lookup would collapse them into one count.
+
+   Everything else takes the product's record for that part — ratchets and bits
+   get exactly one per product, from APPEARANCES. A part the product's contents
+   never list has no variant to hang a count on, so it falls back to a loose
+   part count, which ownByPart() sums too. */
+const comboPartKeys = (parts, anchor, items) => parts.map(x=>{
+  if(x.id === anchor.partId) return vKeyExact(anchor);
+  const rec = items.find(y=>y.partId === x.id);
+  return rec ? vKeyExact(rec) : pKey(x.id);
+});
+
 /* --- Image references -------------------------------------
    A part/variant .img is one of:
      null                 no image
@@ -1619,6 +1639,24 @@ function bumpBox(code, d){
   db.variants.filter(v=>v.productCode===code)
              .forEach(v=>bumpOwn(vKeyExact(v), d));
 }
+
+/* --- Whole combos --------------------------------------------
+   A Random Booster hands you one assembled bey, so recording it
+   should be one tap too. The combo stepper moves every part of
+   that combo, and shows the smallest of their counts — the same
+   "how many complete ones do I have" reading as a box.
+
+   The key list can't ride in a data- attribute: keys contain "|"
+   and a Custom Line build has six of them. It lives here instead,
+   rebuilt by renderProducts(); it only has to outlive one render,
+   and refreshProductOwn() repaints without re-rendering.
+   ------------------------------------------------------------ */
+let comboKeyIndex = {};   // "<code>#<i>" -> the own keys of that combo's parts
+const comboRef = (code, i) => code + "#" + i;
+const comboOwned = keys =>
+  keys && keys.length ? keys.reduce((m,k)=>Math.min(m, ownOf(k)), Infinity) : 0;
+function bumpCombo(ref, d){ (comboKeyIndex[ref]||[]).forEach(k=>bumpOwn(k, d)); }
+
 function refreshProductOwn(prod){
   const code = prod.dataset.code;
   syncSteppers(prod);
@@ -1631,6 +1669,13 @@ function refreshProductOwn(prod){
     box.querySelector("b").textContent = n;
     box.classList.toggle("has", n>0);
   }
+  /* Every combo in the card, not just the one tapped: a bit shared by
+     three combos of a Random Booster moves all three at once. */
+  prod.querySelectorAll(".combostep").forEach(c=>{
+    const n = comboOwned(comboKeyIndex[c.dataset.combo]);
+    c.querySelector("b").textContent = n;
+    c.classList.toggle("has", n>0);
+  });
 }
 function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),1600); }
 
@@ -2325,6 +2370,7 @@ function productCombos(code, items){
       label,
       variant: v,
       parts,
+      keys: comboPartKeys(parts, v, items),
       totalG: allWeighed ? Math.round(total*10)/10 : null
     });
   });
@@ -2343,6 +2389,7 @@ function productCombos(code, items){
 function renderProducts(){
   const groups = {};
   db.variants.forEach(v=>{ (groups[v.productCode]=groups[v.productCode]||[]).push(v); });
+  comboKeyIndex = {};
 
   let codes = Object.keys(db.productMeta);
   Object.keys(groups).forEach(c=>{ if(!codes.includes(c)) codes.push(c); });
@@ -2385,23 +2432,32 @@ function renderProducts(){
       return p && !accounted.has(p.id);
     });
 
-    const comboHTML = combos.map(c=>{
+    const comboHTML = combos.map((c,ci)=>{
+      const ref = comboRef(code, ci);
+      comboKeyIndex[ref] = c.keys;
       const rar = c.variant.rarity && c.variant.rarity!=="Standard"
         ? `<span class="rar ${c.variant.rarity}">${c.variant.rarity}</span>` : "";
-      const chips = c.parts.map(x=>{
+      /* Each chip carries its own count, so a part won or bought on its own
+         can be recorded where you are already looking. The chip keeps its
+         open-the-part action; the handler takes the innermost data-action,
+         so the stepper's buttons win their own taps. */
+      const chips = c.parts.map((x,i)=>{
         const cls = x.kind==="blade" ? "b-"+(x.bladeType||"").toLowerCase()
                   : x.kind==="bit"   ? "b-"+(x.bitType||"").toLowerCase()
                   : "b-"+x.kind;
         const nm = x.kind==="bit" ? `${x.name}<span class="cfull"> ${esc(x.fullName||"")}</span>` : esc(x.name);
-        return `<span class="cchip ${cls}" data-action="open" data-id="${x.id}" title="${esc(KIND_LABEL[x.kind]||x.kind)}${x.weightG!=null?" · "+x.weightG+" g":""}">${nm}</span>`;
+        return `<span class="cslot"><span class="cchip ${cls}" data-action="open" data-id="${x.id}" title="${esc(KIND_LABEL[x.kind]||x.kind)}${x.weightG!=null?" · "+x.weightG+" g":""}">${nm}</span>${stepperHTML(c.keys[i])}</span>`;
       }).join("");
+      const nCombo = comboOwned(c.keys);
       return `<div class="combo">
         <div class="chead">
           <span class="cname">${esc(c.label)}</span>
           ${c.variant.color && c.variant.color!=="Standard" ? `<span class="ccol">${esc(c.variant.color)}</span>` : ""}
           ${rar}
           ${c.totalG!=null ? `<span class="ctot">${c.totalG} g assembled</span>` : ""}
-          ${stepperHTML(vKeyExact(c.variant))}
+          <span class="stepper combostep${nCombo?" has":""}" data-combo="${esc(ref)}" title="How many of this whole combo you have">
+            <button data-action="combo-dec" data-combo="${esc(ref)}" title="One fewer of every part">&minus;</button><b>${nCombo}</b><button data-action="combo-inc" data-combo="${esc(ref)}" title="One more of every part">+</button>
+          </span>
         </div>
         <div class="cparts">${chips}</div>
       </div>`;
@@ -2427,6 +2483,7 @@ function renderProducts(){
             <span class="vc" style="color:var(--muted)">${esc(v.color)}</span>
             ${v.weightG!=null?`<span class="vc">${v.weightG} g</span>`:""}
             ${rar}
+            ${stepperHTML(vKeyExact(v))}
           </div>`;
         }).join("")}
       </div>` : "";
@@ -2946,8 +3003,10 @@ function mergeImport(data){
    buttons outright, so this is belt-and-braces: it keeps behaviour coherent
    if one of these is reached some other way (a stale node, the console).
 
-   The collection actions (own-inc, own-dec, box-inc, box-dec) are deliberately
-   absent, so they keep working on the hosted copy. They write to bxdb:own:v1,
+   The collection actions (own-inc, own-dec, box-inc, box-dec, combo-inc,
+   combo-dec) are deliberately absent, so they keep working on the hosted copy
+   at every granularity — a whole box, one combo, one part. They write to
+   bxdb:own:v1,
    which is per-browser: a visitor's collection is theirs alone and can't touch
    the dataset or anyone else's data. Being able to tick parts off on a phone
    is the whole point of the feature. */
@@ -2967,6 +3026,8 @@ document.addEventListener("click",e=>{
     case "own-dec": bumpOwn(el.dataset.ownkey, -1); refreshOwnUI(el); break;
     case "box-inc": bumpBox(el.dataset.code,  1); refreshOwnUI(el); break;
     case "box-dec": bumpBox(el.dataset.code, -1); refreshOwnUI(el); break;
+    case "combo-inc": bumpCombo(el.dataset.combo,  1); refreshOwnUI(el); break;
+    case "combo-dec": bumpCombo(el.dataset.combo, -1); refreshOwnUI(el); break;
     case "open": openDetail(id); break;
     case "close-detail": closeDetail(); break;
     case "add-part": partForm(null); break;
