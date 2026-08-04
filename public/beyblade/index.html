@@ -1177,7 +1177,7 @@ function seed(){
     "r-9-80":["BX-27:6.8","BX-31:7.0","BX-35:6.9","BX-00:6.9","CX-05:6.9","CX-12:6.8","BX-48:6.9"],
     "r-1-60":["UX-01:5.7","UX-04:6.1","BX-31:5.6","BX-35:6.0","BX-00:6.0","UX-10:6.0","UX-13:5.8","CX-08:6.0"],
     "r-3-70":["UX-02:6.4","UX-05:6.5","BX-35:6.5","UX-00:6.4","BX-00:6.3","UX-17:6.3"],
-    "r-5-70":["UX-03:6.7","UX-04:6.8","BX-35:6.8","BX-39:6.6","BX-00:6.7","CX-09:6.7","CX-18:6.8"],
+    "r-5-70":["UX-03:6.7","UX-04:6.8","BX-35:6.8","BX-39:6.6","BX-00:6.7","CX-09:6.7","CX-18:6.8:01","CX-18:6.8:02","CX-18:6.8:03"],
     "r-4-70":["BX-31:6.5","BX-36:6.4","BX-38:6.4","BX-48:6.4","CX-05:6.4","CX-00:6.4"],
     "r-1-80":["UX-05:6.7","UX-07:6.8","BX-00:6.6","CX-17:6.7"],
     "r-2-60":["BX-34:6.5","UX-07:6.2","BX-00:6.2","UX-12:6.1","CX-06:6.1"],
@@ -1197,7 +1197,7 @@ function seed(){
     "r-6-70":["BX-45:6.6"],
     "r-4-50":["UX-15:5.9","BX-49:5.9"],
     "r-1-70":["UX-15:6.1"],
-    "r-9-65":["UX-16:4.6","CX-17:4.6","BX-50:4.6"],
+    "r-9-65":["UX-16:4.6:Select 01 (green)","UX-16:4.6:Select 02 (black)","UX-16:4.6:Select 03 (red-purple)","CX-17:4.6","BX-50:4.6"],
     "r-0-60":["CX-10:6.8"],
     "r-7-55":["UX-18:5.3","BX-50:5.3"],
     "r-1-50":["CX-13:5.7","CX-16:5.6"],
@@ -1206,7 +1206,7 @@ function seed(){
     // ----- Bits -----
     "bit-F":["BX-01:2.2","BX-07:2.2","BX-16:2.2","BX-17:2.2","BX-21:2.2","BX-22:2.2","BX-24:2.2","BX-37:2.2","BX-00:2.2","UX-12:2.2","CX-08:2.2","BX-48:2.2"],
     "bit-T":["BX-02:2.2","BX-08:2.2","BX-14:2.2","BX-21:2.2","BX-24:2.2","BX-00:2.3","BX-46:2.2"],
-    "bit-B":["BX-03:2.1","BX-05:2.1","BX-08:2.1","BX-14:2.1","BX-17:2.1","BX-35:2.0","BX-00:2.1","UX-10:2.0","UX-16:2.0"],
+    "bit-B":["BX-03:2.1","BX-05:2.1","BX-08:2.1","BX-14:2.1","BX-17:2.1","BX-35:2.0","BX-00:2.1","UX-10:2.0","UX-16:2.0:Select 01 (green)","UX-16:2.0:Select 02 (black)","UX-16:2.0:Select 03 (red-purple)"],
     "bit-N":["BX-04:2.0","BX-06:2.0","BX-08:2.0","BX-14:2.0","BX-21:2.0","BX-00:2.0","UX-12:2.0","CX-17:2.0"],
     "bit-HN":["BX-13:2.2","BX-16:2.1","BX-24:2.2","BX-36:2.1","CX-11:2.1"],
     "bit-LF":["BX-14:2.2","BX-21:2.1","UX-05:2.1","BX-00:2.2","CX-05:2.1","UX-00:2.2","UX-20:2.1"],
@@ -1252,7 +1252,7 @@ function seed(){
     "bit-Y":["CX-15:4.2"],
     "bit-GU":["CX-17:2.3"],
     "bit-FF":["BX-49:2.2"],
-    "bit-Nr":["CX-18:1.9"],
+    "bit-Nr":["CX-18:1.9:01","CX-18:1.9:02","CX-18:1.9:03"],
     "bit-DS":["BX-50:3.1"],
     "bit-Tr":["CX-07:12.5","CX-00:12.7:MC Red:Rare"],
     "bit-Op":["CX-11:14.2"],
@@ -1275,23 +1275,25 @@ function seed(){
     "lc-knight":["CX-14:1.7"],
     "lc-ragna":["CX-15:1.7"],
     "lc-unicorn":["CX-17:1.7"],
-    "lc-brachio":["CX-18:1.7"],
+    "lc-brachio":["CX-18:1.7:01","CX-18:1.7:02","CX-18:1.7:03"],
     "lc-valkyrie":["CX-00:5.6:Metal, app limited:Rare"],
     "lc-emperor":["CX-11:4.8:Metal"],
 
-    // ----- Main blades -----
-    "mb-brave":["CX-01:31.2","CX-04:31.2","UX-15:31.1","UX-18:31.4","CX-00:31.3:MC Black (mall limited):Rare"],
-    "mb-arc":["CX-02:29.4","CX-05:29.0","CX-00:29.4:MC Black:Rare","CX-00:29.7:MC Blue (CoroCoro):Rare"],
-    "mb-dark":["CX-03:30.3","CX-04:30.4"],
-    "mb-reaper":["CX-05:28.9","BX-50:28.9"],
-    "mb-brush":["CX-06:30.4","UX-18:30.3"],
+    /* ----- Main blades -----
+       A main or metal blade that anchors a Custom Line combo is recorded by
+       that combo's own entry further down, with the colourway and the lock
+       chip it was sold with. Listing the same product here as well would add
+       a second, blander record for the same physical part -- one nothing in
+       the Products view can reach, and one that keeps a release's "owned n/n"
+       from ever reading full. So a product appears here only when no combo
+       entry already covers it. */
+    "mb-brave":["CX-01:31.2","CX-00:31.3:MC Black (mall limited):Rare"],
+    "mb-arc":["CX-02:29.4","CX-00:29.4:MC Black:Rare","CX-00:29.7:MC Blue (CoroCoro):Rare"],
+    "mb-dark":["CX-03:30.3"],
     "mb-blast":["CX-07:32.7:Blue","CX-00:32.7:MC Red:Rare"],
-    "mb-flame":["CX-08:29.0","BX-50:29.0"],
     "mb-volt":["CX-00:31.2:Gold, app limited:Rare"],
     "mb-eclipse":["CX-09:32.2"],
     "mb-hunt":["CX-10:31.4"],
-    "mb-might":["CX-11:33.2:Black"],
-    "mb-fang":["CX-00:30.3:Red Ver. (game bonus):Rare"],
     "mb-flare":["CX-12:30.9:Red"],
 
     // ----- Assist blades -----
@@ -1302,7 +1304,7 @@ function seed(){
     "ab-charge":["CX-05:5.0","UX-18:5.0"],
     "ab-jaggy":["CX-06:4.8","BX-00:4.8:CoroCoro appendix:Rare","UX-15:4.8"],
     "ab-assault":["CX-07:5.0","CX-00:5.0:MC Red:Rare"],
-    "ab-wheel":["CX-08:7.1","CX-18:7.1"],
+    "ab-wheel":["CX-08:7.1","CX-18:7.1:01","CX-18:7.1:02","CX-18:7.1:03"],
     "ab-massive":["CX-08:5.4","UX-18:5.4"],
     "ab-dual":["CX-09:5.9","BX-50:5.9"],
     "ab-free":["CX-10:5.8"],
@@ -1313,19 +1315,17 @@ function seed(){
     "ab-erase":["CX-15:6.1"],
     "ab-odd":["CX-17:4.5"],
 
-    // ----- Metal blades -----
-    "mtb-blitz":["CX-13:29.5","CX-16:30.0"],
+    // ----- Metal blades ----- (same rule as main blades above)
+    "mtb-blitz":["CX-13:29.5"],
     "mtb-fortress":["CX-14:27.7"],
     "mtb-rage":["CX-15:27.2"],
-    "mtb-delta":["CX-17:27.9"],
-    "mtb-whip":["CX-18:27.4"],
 
     // ----- Over blades -----
     "ob-break":["CX-13:3.8","CX-16:3.8"],
     "ob-guard":["CX-14:3.3"],
     "ob-flow":["CX-15:3.8"],
     "ob-peak":["CX-17:3.4"],
-    "ob-outer":["CX-18:3.6"],
+    "ob-outer":["CX-18:3.6:01","CX-18:3.6:02","CX-18:3.6:03"],
   };
 
   Object.keys(APPEARANCES).forEach(pid=>{
@@ -1370,7 +1370,7 @@ function seed(){
   v("b-cobalt-dragoon","06","CX-08","4-55WB",null,37.8);
 
   // CX-11 Emperor Might Deck Set — Operate is a ratchet-integrated bit
-  v("mb-might","Deck Set","CX-11","HOp",null,33.2,"lc-emperor");
+  v("mb-might","Deck Set (black)","CX-11","HOp",null,33.2,"lc-emperor");
 
   // CX-16 Start Dash Set C
   v("mtb-blitz","Set","CX-16","BK1-50I",null,30.0,"lc-bahamut");
@@ -1414,13 +1414,21 @@ const pKey = id => "part:" + id;
    two combos built on the same blade (Black Shell twice in BX-35), and a
    partId lookup would collapse them into one count.
 
-   Everything else takes the product's record for that part — ratchets and bits
-   get exactly one per product, from APPEARANCES. A part the product's contents
-   never list has no variant to hang a count on, so it falls back to a loose
-   part count, which ownByPart() sums too. */
+   Everything else takes the product's record for that part, preferring one
+   recorded in this combo's colourway. That matters for a Select booster, which
+   sells one build as three full recolours: without the colour match all three
+   would share a ratchet record, and recording the colourway you pulled would
+   fill in the two you didn't.
+
+   Most releases record a part once, under "Standard", and the colour match
+   finds nothing — a Random Booster whose combos happen to share a bit keeps
+   pointing at that single record, which is right, since it is one bit either
+   way. A part the product's contents never list has no variant to hang a count
+   on, so it falls back to a loose part count, which ownByPart() sums too. */
 const comboPartKeys = (parts, anchor, items) => parts.map(x=>{
   if(x.id === anchor.partId) return vKeyExact(anchor);
-  const rec = items.find(y=>y.partId === x.id);
+  const rec = items.find(y=>y.partId === x.id && y.color === anchor.color)
+           || items.find(y=>y.partId === x.id);
   return rec ? vKeyExact(rec) : pKey(x.id);
 });
 
