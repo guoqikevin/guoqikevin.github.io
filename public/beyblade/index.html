@@ -939,10 +939,13 @@ function seed(){
      colourway of each unit weighed). "MC" = metal coat. */
   let vid = 0;
   const V = [];
-  const v = (partId,color,productCode,combo,rarity,weightG,chip)=>
-    V.push({id:"v"+(++vid),partId,color,productCode,combo,
-            rarity:rarity||"Standard",img:null,weightG:weightG||null,
-            chip:chip||null});
+  const v = (partId,color,productCode,combo,rarity,weightG,chip)=>{
+    const rec = {id:"v"+(++vid),partId,color,productCode,combo,
+                 rarity:rarity||"Standard",img:null,weightG:weightG||null,
+                 chip:chip||null};
+    V.push(rec);
+    return rec;
+  };
 
   // Dran Sword
   v("b-dran-sword","Standard","BX-01","3-60F",null,34.7);
@@ -1556,31 +1559,36 @@ function seed(){
     if(e){ retired[e[0]] = x.productCode; x.productCode = e[0]; }
   });
 
-  /* Give every build its own ratchet, bit and Custom Line parts. Reading
-     them off the combo is the same reconstruction the Products view does,
-     so a release can never claim a part its build does not name. */
+  /* The parts a build needs beyond its anchor, read off the combo string.
+     Same reconstruction the Products view does, so a release can never
+     claim a part its build does not name. */
+  const buildComponents = (anchor, combo, chipId)=>{
+    const parsed = parseCombo(combo, anchor);
+    if(!parsed) return null;
+    const out = [];
+    if(chipId && byId[chipId]) out.push(byId[chipId]);
+    if(parsed.prefix.length === 1){
+      const ab = byLetter("assistblade", parsed.prefix);
+      if(ab) out.push(ab);
+    }else if(parsed.prefix.length === 2){
+      const ob = byLetter("overblade",   parsed.prefix[0]);
+      const ab = byLetter("assistblade", parsed.prefix[1]);
+      if(ob) out.push(ob);
+      if(ab) out.push(ab);
+    }
+    if(parsed.ratchet && byId["r-"+parsed.ratchet])  out.push(byId["r-"+parsed.ratchet]);
+    if(parsed.bit     && byId["bit-"+parsed.bit])    out.push(byId["bit-"+parsed.bit]);
+    return out;
+  };
+
+  // Give every limited build the parts its combo names.
   const held = new Set(V.map(x=>x.partId+"|"+x.productCode));
   const placed = new Set();
   V.slice().forEach(a=>{
     const anchor = byId[a.partId], from = retired[a.productCode];
     if(!from || !anchor || !ANCHOR_KINDS.includes(anchor.kind)) return;
-    const parsed = parseCombo(a.combo, anchor);
-    if(!parsed) return;
-
-    const comps = [];
-    if(a.chip && byId[a.chip]) comps.push(byId[a.chip]);
-    if(parsed.prefix.length === 1){
-      const ab = byLetter("assistblade", parsed.prefix);
-      if(ab) comps.push(ab);
-    }else if(parsed.prefix.length === 2){
-      const ob = byLetter("overblade",   parsed.prefix[0]);
-      const ab = byLetter("assistblade", parsed.prefix[1]);
-      if(ob) comps.push(ob);
-      if(ab) comps.push(ab);
-    }
-    if(parsed.ratchet && byId["r-"+parsed.ratchet])  comps.push(byId["r-"+parsed.ratchet]);
-    if(parsed.bit     && byId["bit-"+parsed.bit])    comps.push(byId["bit-"+parsed.bit]);
-
+    const comps = buildComponents(anchor, a.combo, a.chip);
+    if(!comps) return;
     comps.forEach(pt=>{
       placed.add(from+"|"+pt.id);
       const k = pt.id+"|"+a.productCode;
@@ -1599,6 +1607,75 @@ function seed(){
       const u = UNPLACED[from];
       productMeta[u[0]] = productMeta[u[0]] || { name:u[1], type:"Special", price:null, date:"" };
       v(pid, "Standard", u[0], "", null, SAMPLE[from][pid]);
+    });
+  });
+
+  /* ============================================================
+     One counter per build
+
+     A build takes its product's record for each of its parts, so two
+     builds in one box that call for the same ratchet used to land on
+     one record and therefore one count. They are not the same ratchet:
+     a Random Booster colours every build differently, so BX-50's 0-80
+     in slot 01 and in slot 06 are two different parts, and recording
+     one must not fill in the other.
+
+     So every build claims its own record, and the record carries the
+     combo it shipped as. That is what makes its identity —
+     partId|productCode|combo|colour — unique per build. A part no
+     build names keeps an empty combo and stays a loose spare.
+     ============================================================ */
+  const grouped = {};
+  V.forEach(x=>{ (grouped[x.productCode] = grouped[x.productCode] || []).push(x); });
+
+  Object.keys(grouped).forEach(code=>{
+    const items = grouped[code];
+    const nameCombo = comboFromName((productMeta[code]||{}).name);
+    const taken = new Set();          // records already claimed by a build
+
+    items.filter(a=>{
+      const p = byId[a.partId];
+      return p && ANCHOR_KINDS.includes(p.kind);
+    }).forEach(a=>{
+      const anchor = byId[a.partId];
+      const combo  = (a.combo && a.combo !== "—") ? a.combo : nameCombo;
+      if(!combo) return;
+      /* A Custom Line starter names its build in the product name rather
+         than on the blade, so record it on the blade too — otherwise the
+         ratchet and bit carry the combo and their own blade does not. */
+      if(!a.combo) a.combo = combo;
+      /* Same reason the Products view falls back this way: the combo string
+         never names the lock chip, only the product's contents do. Only a
+         Custom Line build has one — an ordinary blade must not pick up the
+         chip that happens to be in the same box. */
+      let chipId = a.chip;
+      if(!chipId && (anchor.kind === "mainblade" || anchor.kind === "metalblade")){
+        const lc = items.find(y=>byId[y.partId] && byId[y.partId].kind === "lockchip");
+        if(lc) chipId = lc.partId;
+      }
+      const comps = buildComponents(anchor, combo, chipId);
+      if(!comps) return;
+
+      comps.forEach(pt=>{
+        const free = y => y.partId===pt.id && !taken.has(y) &&
+                          (!y.combo || y.combo===combo);
+        /* Prefer this build's own colourway — that is what keeps a Select
+           booster's three recolours apart — then any record going spare. */
+        const rec = items.find(y=>free(y) && y.color===a.color) || items.find(free);
+        if(rec){
+          taken.add(rec);
+          rec.combo = combo;
+          /* "Standard" is the placeholder the appearances table leaves on a
+             ratchet or bit. Once the record belongs to one build it can say
+             which colourway it actually is, the same as that build's blade. */
+          if(rec.color === "Standard" && a.color !== "Standard") rec.color = a.color;
+          return;
+        }
+        // Every record for this part is spoken for, so this build needs one.
+        const src = items.find(y=>y.partId===pt.id);
+        const made = v(pt.id, a.color, code, combo, null, src ? src.weightG : null);
+        items.push(made); taken.add(made);
+      });
     });
   });
 
@@ -1637,20 +1714,22 @@ const pKey = id => "part:" + id;
    two combos built on the same blade (Black Shell twice in BX-35), and a
    partId lookup would collapse them into one count.
 
-   Everything else takes the product's record for that part, preferring one
-   recorded in this combo's colourway. That matters for a Select booster, which
-   sells one build as three full recolours: without the colour match all three
-   would share a ratchet record, and recording the colourway you pulled would
-   fill in the two you didn't.
+   Everything else takes the product's record for that part, matched on the
+   combo it shipped as. seed() gives every build its own record for exactly
+   this reason: two builds in one box calling for the same ratchet are not
+   holding the same ratchet — a Random Booster colours each build differently
+   — so BX-50's 0-80 in slot 01 and in slot 06 keep separate counts.
 
-   Most releases record a part once, under "Standard", and the colour match
-   finds nothing — a Random Booster whose combos happen to share a bit keeps
-   pointing at that single record, which is right, since it is one bit either
-   way. A part the product's contents never list has no variant to hang a count
-   on, so it falls back to a loose part count, which ownByPart() sums too. */
-const comboPartKeys = (parts, anchor, items) => parts.map(x=>{
+   The colourway breaks the remaining tie, for a Select booster that sells one
+   build as three full recolours. A part the product's contents never list has
+   no record to hang a count on, so it falls back to a loose part count, which
+   ownByPart() sums too — but seed() leaves no build in that state, and suite
+   22 fails if one appears. */
+const comboPartKeys = (parts, anchor, items, combo) => parts.map(x=>{
   if(x.id === anchor.partId) return vKeyExact(anchor);
-  const rec = items.find(y=>y.partId === x.id && y.color === anchor.color)
+  const rec = items.find(y=>y.partId === x.id && y.combo === combo && y.color === anchor.color)
+           || items.find(y=>y.partId === x.id && y.combo === combo)
+           || items.find(y=>y.partId === x.id && y.color === anchor.color)
            || items.find(y=>y.partId === x.id);
   return rec ? vKeyExact(rec) : pKey(x.id);
 });
@@ -1802,19 +1881,26 @@ function reconcileOwned(){
   /* Splitting the catch-alls moved the product out from under every count
      recorded against them, and the combo fallback keys on the product too.
      The colourway is what became the release, so match on that instead. */
-  const byRelease = {};
+  const byRelease = {}, byPart = {};
   db.variants.forEach(v=>{
     const r = v.partId+"|"+(v.combo||"")+"|"+(v.color||"");
     if(!(r in byRelease)) byRelease[r] = vKeyExact(v);
+    const p = v.partId+"|"+v.productCode;
+    if(!(p in byPart)) byPart[p] = vKeyExact(v);
   });
   const parts = new Set(db.parts.map(p=>pKey(p.id)));
   let moved = 0;
   Object.keys(owned).forEach(k=>{
     if(exact.has(k) || parts.has(k)) return;
     const [partId, code, combo, color] = k.split("|");
+    /* A count taken before each build got its own record names no build,
+       so nothing above can match it. It belongs to one of that product's
+       builds and there is no telling which, so it goes to the first —
+       a number you can see and correct beats one you have lost. */
     const target = byLoose[k.split("|").slice(0,3).join("|")]
                 || (RETIRED_CODES.includes(code)
-                    ? byRelease[partId+"|"+(combo||"")+"|"+(color||"")] : null);
+                    ? byRelease[partId+"|"+(combo||"")+"|"+(color||"")] : null)
+                || (combo ? null : byPart[partId+"|"+code]);
     if(!target || target === k) return;
     owned[target] = (owned[target]||0) + owned[k];
     delete owned[k];
@@ -1951,7 +2037,7 @@ function swatchColor(color){
    back, since a deletion can't be told apart from never having
    had the record.
    ============================================================ */
-const SEED_VERSION = 11;
+const SEED_VERSION = 12;
 
 function migrate(oldDb){
   const fresh = seed();
@@ -1976,21 +2062,53 @@ function migrate(oldDb){
   //    combo spec, which is far more stable than my colour wording. Only
   //    photos are carried across; the seed's own facts win. Anything that
   //    matches nothing is kept as a variant of yours.
-  const byExact = {}, byLoose = {};
+  /*  A record saved by an older version can fail every key above without
+      being yours, and then it comes back as a duplicate row: splitting the
+      catch-alls moved the product out from under every BX-00 record, and
+      giving each build its own ratchet moved the combo and colourway under
+      every appearances-generated one. Left unmatched those put four Aero
+      Pegasus rows on the part page and BX-00 back in the product list.
+
+      So three more fallbacks, each narrow enough not to swallow your own
+      work: the release a retired code became; the same part in the same
+      product under the same colourway; and, only for a record with no
+      combo of its own, the same part in the same product. That last shape
+      is what the appearances table generates and what the form never
+      does — a variant you add names the build it came in. A colourway
+      with a combo that the new dataset has no place for is still yours,
+      and still kept. */
+  const byExact = {}, byLoose = {}, byRelease = {}, byColour = {}, byPart = {};
+  const rKey = v => v.partId+"|"+(v.combo||"")+"|"+(v.color||"");
+  const cKey = v => v.partId+"|"+v.productCode+"|"+(v.color||"");
+  const pfx  = v => v.partId+"|"+v.productCode;
   fresh.variants.forEach(v=>{
     byExact[vKeyExact(v)] = v;
-    if(!(vKeyLoose(v) in byLoose)) byLoose[vKeyLoose(v)] = v;
+    if(!(vKeyLoose(v) in byLoose))  byLoose[vKeyLoose(v)]  = v;
+    if(!(rKey(v) in byRelease))     byRelease[rKey(v)]     = v;
+    if(!(cKey(v) in byColour))      byColour[cKey(v)]      = v;
+    if(!(pfx(v)  in byPart))        byPart[pfx(v)]         = v;
   });
   let nextId = fresh.variants.length;
+  const kept = new Set();
   (oldDb.variants||[]).forEach(v=>{
-    const match = byExact[vKeyExact(v)] || byLoose[vKeyLoose(v)];
+    const retired = RETIRED_CODES.includes(v.productCode);
+    const match = byExact[vKeyExact(v)] || byLoose[vKeyLoose(v)]
+               || (retired ? byRelease[rKey(v)] : null)
+               || byColour[cKey(v)]
+               || (v.combo ? null : byPart[pfx(v)]);
     if(match){ if(v.img && !match.img) match.img = v.img; }
-    else { fresh.variants.push({...v, id:"u"+(++nextId)}); }
+    /* A record still naming a retired code and matching no release is one
+       of the shared rows the split removed — fifty releases' worth of one
+       "Standard" ratchet. Keeping it would put the dead code back in the
+       product list, so it goes. */
+    else if(retired){ /* dropped */ }
+    else { fresh.variants.push({...v, id:"u"+(++nextId)}); kept.add(v.productCode); }
   });
 
-  // 4. Keep any product codes you added that the seed doesn't define.
+  // 4. Keep any product codes you added, so long as a record still uses one.
+  //    A code nothing references would show up as an empty product.
   Object.keys(oldDb.productMeta||{}).forEach(code=>{
-    if(!fresh.productMeta[code]) fresh.productMeta[code] = oldDb.productMeta[code];
+    if(!fresh.productMeta[code] && kept.has(code)) fresh.productMeta[code] = oldDb.productMeta[code];
   });
 
   return fresh;
@@ -2619,7 +2737,7 @@ function productCombos(code, items){
       label,
       variant: v,
       parts,
-      keys: comboPartKeys(parts, v, items),
+      keys: comboPartKeys(parts, v, items, combo),
       totalG: allWeighed ? Math.round(total*10)/10 : null
     });
   });
