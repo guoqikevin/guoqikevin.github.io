@@ -923,11 +923,10 @@ function seed(){
     ["BX-51","String Launcher Black × Green","Tool",1100,"2026-06-13"],
     ["UX-20","Starter · Glory Valkyrie LF","Starter",2700,"2026-07-11"],
     ["BX-50","Random Booster Vol.11","Random Booster",1600,"2026-07-11"],
-    // Catch-all codes for limited, prize and collab releases, which
-    // Takara Tomy all number BX-00 / UX-00 / CX-00 regardless of line.
-    ["BX-00","Limited · collab, prize and store-exclusive releases","Special",null,null],
-    ["UX-00","Limited · Unique Line exclusives and prizes","Special",null,null],
-    ["CX-00","Limited · Custom Line exclusives and prizes","Special",null,null],
+    /* Limited, prize and collab releases are numbered BX-00 / UX-00 /
+       CX-00 whatever they are. They are seeded under those codes and
+       split into one product each at the end of seed(); see LIMITED. */
+    ["BX-00","",""],["UX-00","",""],["CX-00","",""],
   ];
   const productMeta = {};
   PRODUCTS.forEach(([code,name,type,price,date])=>{
@@ -1204,8 +1203,8 @@ function seed(){
     "r-8-70":["CX-14:7.7"],
 
     // ----- Bits -----
-    "bit-F":["BX-01:2.2","BX-07:2.2","BX-16:2.2","BX-17:2.2","BX-21:2.2","BX-22:2.2","BX-24:2.2","BX-37:2.2","BX-00:2.2","UX-12:2.2","CX-08:2.2","BX-48:2.2"],
-    "bit-T":["BX-02:2.2","BX-08:2.2","BX-14:2.2","BX-21:2.2","BX-24:2.2","BX-00:2.3","BX-46:2.2"],
+    "bit-F":["BX-01:2.2","BX-07:2.2","BX-16:2.2","BX-17:2.2","BX-20:2.2","BX-21:2.2","BX-22:2.2","BX-24:2.2","BX-37:2.2","BX-00:2.2","UX-12:2.2","CX-08:2.2","BX-48:2.2"],
+    "bit-T":["BX-02:2.2","BX-08:2.2","BX-14:2.2","BX-20:2.2","BX-21:2.2","BX-24:2.2","BX-00:2.3","BX-46:2.2"],
     "bit-B":["BX-03:2.1","BX-05:2.1","BX-08:2.1","BX-14:2.1","BX-17:2.1","BX-35:2.0","BX-00:2.1","UX-10:2.0","UX-16:2.0:Select 01 (green)","UX-16:2.0:Select 02 (black)","UX-16:2.0:Select 03 (red-purple)"],
     "bit-N":["BX-04:2.0","BX-06:2.0","BX-08:2.0","BX-14:2.0","BX-21:2.0","BX-00:2.0","UX-12:2.0","CX-17:2.0"],
     "bit-HN":["BX-13:2.2","BX-16:2.1","BX-24:2.2","BX-36:2.1","CX-11:2.1"],
@@ -1269,7 +1268,7 @@ function seed(){
     "lc-whale":["CX-08:1.7"],
     "lc-sol":["CX-09:1.7","UX-18:1.7"],
     "lc-wolf":["CX-10:1.7","BX-50:1.7"],
-    "lc-leon":["CX-00:1.7:Red Ver. (game bonus):Rare"],
+    "lc-leon":["CX-00:1.7:Leon Fang Red Ver.:Rare"],
     "lc-phoenix":["CX-12:1.7"],
     "lc-bahamut":["CX-13:1.7","CX-16:1.7"],
     "lc-knight":["CX-14:1.7"],
@@ -1287,10 +1286,10 @@ function seed(){
        the Products view can reach, and one that keeps a release's "owned n/n"
        from ever reading full. So a product appears here only when no combo
        entry already covers it. */
-    "mb-brave":["CX-01:31.2","CX-00:31.3:MC Black (mall limited):Rare"],
-    "mb-arc":["CX-02:29.4","CX-00:29.4:MC Black:Rare","CX-00:29.7:MC Blue (CoroCoro):Rare"],
+    "mb-brave":["CX-01:31.2"],
+    "mb-arc":["CX-02:29.4","CX-00:29.7:MC Blue (CoroCoro):Rare"],
     "mb-dark":["CX-03:30.3"],
-    "mb-blast":["CX-07:32.7:Blue","CX-00:32.7:MC Red:Rare"],
+    "mb-blast":["CX-07:32.7:Blue"],
     "mb-volt":["CX-00:31.2:Gold, app limited:Rare"],
     "mb-eclipse":["CX-09:32.2"],
     "mb-hunt":["CX-10:31.4"],
@@ -1300,7 +1299,7 @@ function seed(){
     "ab-slash":["CX-01:4.6","CX-04:4.6","CX-00:4.6","CX-00:4.8:MC Blue (CoroCoro):Rare","CX-00:4.9:MC Black (mall limited):Rare"],
     "ab-round":["CX-02:4.7","CX-00:4.7:MC Black:Rare"],
     "ab-bumper":["CX-03:5.2","CX-04:5.2","BX-50:5.3"],
-    "ab-turn":["CX-05:5.9","CX-00:5.8:Red Ver. (game bonus):Rare"],
+    "ab-turn":["CX-05:5.9","CX-00:5.8:Leon Fang Red Ver.:Rare"],
     "ab-charge":["CX-05:5.0","UX-18:5.0"],
     "ab-jaggy":["CX-06:4.8","BX-00:4.8:CoroCoro appendix:Rare","UX-15:4.8"],
     "ab-assault":["CX-07:5.0","CX-00:5.0:MC Red:Rare"],
@@ -1347,6 +1346,20 @@ function seed(){
   // CX-00 Leon Fang — Switch game pre-order bonus
   v("mb-fang","Leon Fang Red Ver.","CX-00","T4-60A","Rare",30.3,"lc-leon");
 
+  /* CX-00 limited Custom Line sets whose build is recoverable.
+     Each ships the same assortment as the retail starter of that build,
+     and the ratchet and bit CX-00 records loose are exactly the ones
+     those builds call for, so the combo is recorded here rather than
+     left as three unrelated parts:
+       MC Black             Wizard + Arc + Round  = CX-02's R4-55LO
+       MC Black (mall)      Dran + Brave + Slash  = CX-01's S6-60V
+       MC Red               Pegasus + Blast + Assault + Turbo = CX-07's ATr
+     Dran + Arc + Slash (MC Blue, CoroCoro) has no retail counterpart and
+     no ratchet left to attribute, so it stays a set of loose parts. */
+  v("mb-arc","MC Black","CX-00","R4-55LO","Rare",29.4,"lc-wizard");
+  v("mb-brave","MC Black (mall limited)","CX-00","S6-60V","Rare",31.3,"lc-dran");
+  v("mb-blast","MC Red","CX-00","ATr","Rare",32.7,"lc-pegasus");
+
   // CX-04 Battle Entry Set C — two complete beys
   v("mb-brave","Set","CX-04","S6-60V",null,31.2,"lc-dran");
   v("mb-dark","Set","CX-04","B6-80W",null,30.4,"lc-perseus");
@@ -1378,6 +1391,216 @@ function seed(){
   // CX-17 Random Booster Vol.10 — the Unicorn Delta pair
   v("mtb-delta","01 (rare)","CX-17","PO3-60GU","Rare",27.9,"lc-unicorn");
   v("mtb-delta","02","CX-17","PO1-80GR",null,27.8,"lc-unicorn");
+
+  /* ============================================================
+     Limited releases
+
+     Takara Tomy numbers every limited, prize and collab item BX-00,
+     UX-00 or CX-00 regardless of what it is, so this index used to
+     carry them as three products. They are not products: BX-00 alone
+     stood for fifty-odd separate releases.
+
+     That mattered beyond tidiness. A combo takes the product's record
+     for each of its parts, so fifty releases sharing one code shared
+     one "Standard" 4-60 ratchet between them, and recording the
+     J-League Dran Sword filled in eight other prizes. Nine builds had
+     no record to take at all and fell back to a key naming no product.
+
+     So each release gets its own code. They are synthetic — the real
+     items have no number — and once assigned they must not be
+     renumbered, because a collection count names the product it was
+     recorded against. Append new releases at the end of their line.
+
+     Keyed by the colourway, which is what identifies the release.
+     Where one colourway covers several releases the row is keyed by
+     blade instead: the six Double Starter two-packs, and the beys sold
+     on their own in the standard colourway.
+     ============================================================ */
+  const LIMITED = {
+    "BX-00": {
+      "25th Anniversary Set"              : ["BX-00-01","Beyblade 25th Anniversary Set","Set"],
+      "Black Ver."                        : ["BX-00-02","Limited · Dranzer Spiral 3-80T Black Ver."],
+      "Clear Ver."                        : ["BX-00-03","Limited · Cobalt Drake 4-60F Clear Ver."],
+      "CoroCoro appendix"                 : ["BX-00-04","Limited · Jaggy assist blade (CoroCoro appendix)"],
+      "CoroCoro blade"                    : ["BX-00-05","Limited · Phoenix Feather blade (CoroCoro)"],
+      // Six two-bey crossover packs; the seed lists them in pairs.
+      "Double Starter": {
+        "b-iron-man"      : ["BX-00-06","Double Starter · Iron Man / Thanos","Set"],
+        "b-thanos"        : ["BX-00-06","Double Starter · Iron Man / Thanos","Set"],
+        "b-spider-man"    : ["BX-00-07","Double Starter · Spider-Man / Venom","Set"],
+        "b-venom"         : ["BX-00-07","Double Starter · Spider-Man / Venom","Set"],
+        "b-luke-skywalker": ["BX-00-08","Double Starter · Luke Skywalker / Darth Vader","Set"],
+        "b-darth-vader"   : ["BX-00-08","Double Starter · Luke Skywalker / Darth Vader","Set"],
+        "b-mandalorian"   : ["BX-00-09","Double Starter · The Mandalorian / Moff Gideon","Set"],
+        "b-moff-gideon"   : ["BX-00-09","Double Starter · The Mandalorian / Moff Gideon","Set"],
+        "b-optimus-prime" : ["BX-00-10","Double Starter · Optimus Prime / Megatron","Set"],
+        "b-megatron"      : ["BX-00-10","Double Starter · Optimus Prime / Megatron","Set"],
+        "b-optimus-primal": ["BX-00-11","Double Starter · Optimus Primal / Starscream","Set"],
+        "b-starscream"    : ["BX-00-11","Double Starter · Optimus Primal / Starscream","Set"],
+      },
+      "Holo Sticker Ver."                 : ["BX-00-12","Limited · Dran Sword 3-60F Holo Sticker Ver."],
+      "MC Black"                          : ["BX-00-13","Limited · Cobalt Dragoon 2-60C MC Black"],
+      "MC Black (BEYBLADE PARK)"          : ["BX-00-14","Limited · Mammoth Tusk 2-80E MC Black (BEYBLADE PARK)"],
+      "MC Black (Giants Ver.)"            : ["BX-00-15","Limited · Dran Dagger 2-80GP MC Black (Giants Ver.)"],
+      "MC Black (J-League Ver.)"          : ["BX-00-16","Limited · Dran Sword 1-60V MC Black (J-League Ver.)"],
+      "MC Black (Kitani Tatsuya Ver.)"    : ["BX-00-17","Limited · Phoenix Wing 9-60GF MC Black (Kitani Tatsuya Ver.)"],
+      "MC Black (Tsurispi Ver.)"          : ["BX-00-18","Limited · Shark Edge 2-60GP MC Black (Tsurispi Ver.)"],
+      "MC Black (app prize)"              : ["BX-00-19","Limited · Hells Chain 5-60HT MC Black (app prize)"],
+      "MC Blue (B4 store)"                : ["BX-00-20","Limited · Shark Edge 5-60GF MC Blue (B4 store)"],
+      "MC Blue (CoroCoro)"                : ["BX-00-21","Limited · Dran Sword blade MC Blue (CoroCoro)"],
+      "MC Blue (Tsurispi Ver.)"           : ["BX-00-22","Limited · Whale Wave 1-80GF MC Blue (Tsurispi Ver.)"],
+      "MC Blue (app prize)"               : ["BX-00-23","Limited · Cobalt Drake 4-60F MC Blue (app prize)"],
+      "MC Blue (game bonus)"              : ["BX-00-24","Limited · Shinobi Knife 4-60LF MC Blue (game bonus)"],
+      "MC Gold"                           : ["BX-00-25","Limited · Hells Scythe 4-60T MC Gold"],
+      "MC Gold (G3 prize)"                : ["BX-00-26","Limited · Knight Shield 3-80N MC Gold (G3 prize)"],
+      "MC Gold (app prize)"               : ["BX-00-27","Limited · Leon Claw 5-60P MC Gold (app prize)"],
+      "MC Green (CoroCoro)"               : ["BX-00-28","Limited · Croco Crunch 2-60Q MC Green (CoroCoro)"],
+      "MC Navy"                           : ["BX-00-29","Limited · Phoenix Wing 9-80DB MC Navy"],
+      "MC Orange (XTRA Guide)"            : ["BX-00-30","Limited · Phoenix Feather blade MC Orange (XTRA Guide)"],
+      "MC Orange (comic special)"         : ["BX-00-31","Limited · Samurai Saber 2-70L MC Orange (comic special)"],
+      "MC Red (XTRA Guide 2026)"          : ["BX-00-32","Limited · Dran Sword blade MC Red (XTRA Guide 2026)"],
+      "MC White (CoroCoro)"               : ["BX-00-33","Limited · Samurai Steel 5-70GF MC White (CoroCoro)"],
+      "MC White (J-League Ver.)"          : ["BX-00-34","Limited · Cobalt Dragoon 9-60F MC White (J-League Ver.)"],
+      "Mosasaurus Ver."                   : ["BX-00-35","Limited · Tricera Spiky 9-60U Mosasaurus Ver."],
+      "Quetzalcoatlus Ver."               : ["BX-00-36","Limited · Pteras Wing 4-55D Quetzalcoatlus Ver."],
+      "Random Booster 01"                 : ["BX-00-37","Limited · Lightning L-Drago (Upper) 1-60F"],
+      "Random Booster 02"                 : ["BX-00-38","Limited · Lightning L-Drago (Rapid) 1-60F"],
+      "Special Cross Bey"                 : ["BX-00-39","Limited · Hells Scythe 3-80F Special Cross Bey"],
+      "Spinosaurus Ver."                  : ["BX-00-40","Limited · Tyranno Roar 3-85A Spinosaurus Ver."],
+      // Burst-era beys reissued on their own, in the standard colourway.
+      "Standard": {
+        "b-dranzer-spiral": ["BX-00-41","Limited · Dranzer Spiral 3-80T"],
+        "b-storm-spriggan": ["BX-00-42","Limited · Storm Spriggan 2-70M"],
+        "b-driger-slash"  : ["BX-00-43","Limited · Driger Slash 4-80P"],
+        "b-draciel-shield": ["BX-00-44","Limited · Draciel Shield 7-60D"],
+        "b-dragoon-storm" : ["BX-00-45","Limited · Dragoon Storm 4-60RA"],
+        "b-storm-pegasis" : ["BX-00-46","Limited · Storm Pegasis 3-70RA"],
+        "b-xeno-xcalibur" : ["BX-00-47","Limited · Xeno Xcalibur 3-60GF"],
+        "b-rock-leone"    : ["BX-00-48","Limited · Rock Leone 6-80GN"],
+      },
+      "T-Rex Ver."                        : ["BX-00-49","Limited · Tyranno Beat 1-80GB T-Rex Ver."],
+    },
+    "UX-00": {
+      "CoroCoro subscriber"               : ["UX-00-01","Limited · Orochi Cluster 6-60LF (CoroCoro subscriber)"],
+      "Double MC Blue × Green (app prize)": ["UX-00-02","Limited · Aero Pegasus 3-70A Double MC Blue × Green (app prize)"],
+      "MC Blue (FC Barcelona Ver.)"       : ["UX-00-03","Limited · Dran Buster 1-60A MC Blue (FC Barcelona Ver.)"],
+      "MC Gold (G3 prize)"                : ["UX-00-04","Limited · Wizard Rod 5-70DB MC Gold (G3 prize)"],
+      "MC Navy"                           : ["UX-00-05","Limited · Knight Mail 3-85BS MC Navy"],
+      "MC Red (FC Barcelona Ver.)"        : ["UX-00-06","Limited · Hells Hammer 3-70H MC Red (FC Barcelona Ver.)"],
+      "MC Red (comic special)"            : ["UX-00-07","Limited · Dran Buster 1-60A MC Red (comic special)"],
+      "MC Samurai Blue (Japan Ver.)"      : ["UX-00-08","Limited · Samurai Saber 5-60K MC Samurai Blue (Japan Ver.)"],
+      "MC White (Asia CS)"                : ["UX-00-09","Asia Championship Set · Dran Dagger 9-60LF / Dran Buster 3-70N","Set"],
+      "Red Ver. (app / event)"            : ["UX-00-10","Limited · Aero Pegasus 3-70A Red Ver. (app / event)"],
+    },
+    "CX-00": {
+      "Gold, app limited"                 : ["CX-00-01","Limited · Volt main blade (Gold, app limited)"],
+      // The lock chip and assist blade of this build are recorded under
+      // the same colourway, so they land in the same product.
+      "Leon Fang Red Ver."                : ["CX-00-02","Limited · Leon Fang T4-60A Red Ver. (game bonus)"],
+      "MC Black"                          : ["CX-00-03","Limited · Wizard Arc R4-55LO MC Black"],
+      "MC Black (mall limited)"           : ["CX-00-04","Limited · Dran Brave S6-60V MC Black (mall limited)"],
+      "MC Blue (CoroCoro)"                : ["CX-00-05","Limited · Dran / Arc / Slash MC Blue (CoroCoro)"],
+      "MC Red"                            : ["CX-00-06","Limited · Pegasus Blast ATr MC Red"],
+      "Metal, app limited"                : ["CX-00-07","Limited · Valkyrie lock chip (Metal, app limited)"],
+    },
+  };
+
+  /* Parts recorded against a catch-all whose release nothing identifies.
+     They are loose spares with no build, so they share no combo and
+     cannot leak a count into one; they only need somewhere to live. */
+  const UNPLACED = {
+    "BX-00": ["BX-00-50","Limited · loose parts, release not recorded"],
+    "UX-00": ["UX-00-11","Limited · loose parts, release not recorded"],
+    "CX-00": ["CX-00-08","Limited · loose parts, release not recorded"],
+  };
+
+  const ANCHOR_KINDS = ["blade","mainblade","metalblade"];
+  const byId = {}; P.forEach(p=>{ byId[p.id] = p; });
+  const byLetter = (kind,letter)=>P.find(p=>p.kind===kind && p.letter===letter);
+
+  // Register every release, and retire the three catch-alls.
+  Object.keys(LIMITED).forEach(old=>{
+    const seen = {};
+    const reg = e => { if(e && !seen[e[0]]){ seen[e[0]]=1;
+      productMeta[e[0]] = { name:e[1], type:e[2]||"Special", price:null, date:"" }; } };
+    Object.values(LIMITED[old]).forEach(e=>{
+      if(Array.isArray(e)) reg(e); else Object.values(e).forEach(reg);
+    });
+    delete productMeta[old];
+  });
+
+  const release = x => {
+    const m = LIMITED[x.productCode];
+    if(!m) return null;
+    const e = m[x.color];
+    if(!e) return null;
+    return Array.isArray(e) ? e : (e[x.partId] || null);
+  };
+
+  /* One shared row per part is what this whole change is undoing, so the
+     catch-alls' "Standard" ratchets and bits do not survive. Their measured
+     weight does: kyoganken weighed one sample of each, we just cannot say
+     which release it came from, so it carries over to that line's builds. */
+  const SAMPLE = {};
+  for(let i=V.length-1; i>=0; i--){
+    const x = V[i], p = byId[x.partId];
+    if(!LIMITED[x.productCode] || x.color !== "Standard") continue;
+    if(!p || ANCHOR_KINDS.includes(p.kind)) continue;
+    (SAMPLE[x.productCode] = SAMPLE[x.productCode] || {})[x.partId] = x.weightG;
+    V.splice(i,1);
+  }
+
+  const retired = {};                       // new code -> the code it came from
+  V.forEach(x=>{
+    const e = release(x);
+    if(e){ retired[e[0]] = x.productCode; x.productCode = e[0]; }
+  });
+
+  /* Give every build its own ratchet, bit and Custom Line parts. Reading
+     them off the combo is the same reconstruction the Products view does,
+     so a release can never claim a part its build does not name. */
+  const held = new Set(V.map(x=>x.partId+"|"+x.productCode));
+  const placed = new Set();
+  V.slice().forEach(a=>{
+    const anchor = byId[a.partId], from = retired[a.productCode];
+    if(!from || !anchor || !ANCHOR_KINDS.includes(anchor.kind)) return;
+    const parsed = parseCombo(a.combo, anchor);
+    if(!parsed) return;
+
+    const comps = [];
+    if(a.chip && byId[a.chip]) comps.push(byId[a.chip]);
+    if(parsed.prefix.length === 1){
+      const ab = byLetter("assistblade", parsed.prefix);
+      if(ab) comps.push(ab);
+    }else if(parsed.prefix.length === 2){
+      const ob = byLetter("overblade",   parsed.prefix[0]);
+      const ab = byLetter("assistblade", parsed.prefix[1]);
+      if(ob) comps.push(ob);
+      if(ab) comps.push(ab);
+    }
+    if(parsed.ratchet && byId["r-"+parsed.ratchet])  comps.push(byId["r-"+parsed.ratchet]);
+    if(parsed.bit     && byId["bit-"+parsed.bit])    comps.push(byId["bit-"+parsed.bit]);
+
+    comps.forEach(pt=>{
+      placed.add(from+"|"+pt.id);
+      const k = pt.id+"|"+a.productCode;
+      if(held.has(k)) return;
+      held.add(k);
+      /* The metal coat is on the blade; the rest of the build is the
+         ordinary part, which is why these are not flagged Rare. */
+      v(pt.id, a.color, a.productCode, "", null, (SAMPLE[from]||{})[pt.id] ?? null);
+    });
+  });
+
+  // Whatever no build claimed was a loose spare all along.
+  Object.keys(SAMPLE).forEach(from=>{
+    Object.keys(SAMPLE[from]).forEach(pid=>{
+      if(placed.has(from+"|"+pid)) return;
+      const u = UNPLACED[from];
+      productMeta[u[0]] = productMeta[u[0]] || { name:u[1], type:"Special", price:null, date:"" };
+      v(pid, "Standard", u[0], "", null, SAMPLE[from][pid]);
+    });
+  });
 
   return { parts:P, productMeta, variants:V };
 }
@@ -1563,6 +1786,11 @@ function productOwned(code, items){
    otherwise a first run paints every card as "missing", which reads as broken. */
 const hasCollection = () => Object.keys(owned).length > 0;
 
+/* Codes this index used to record many separate releases under. A count
+   taken against one names a product that no longer exists, so it needs
+   the release-aware fallback below rather than the combo one. */
+const RETIRED_CODES = ["BX-00","UX-00","CX-00"];
+
 /* Re-home counts after a dataset rebuild. Keys that still name a real
    variant are left alone; the rest fall back to the combo spec, matching
    how migrate() carries photos. Anything that matches nothing is kept —
@@ -1571,11 +1799,22 @@ function reconcileOwned(){
   const exact = new Set(db.variants.map(vKeyExact));
   const byLoose = {};
   db.variants.forEach(v=>{ const l=vKeyLoose(v); if(!(l in byLoose)) byLoose[l]=vKeyExact(v); });
+  /* Splitting the catch-alls moved the product out from under every count
+     recorded against them, and the combo fallback keys on the product too.
+     The colourway is what became the release, so match on that instead. */
+  const byRelease = {};
+  db.variants.forEach(v=>{
+    const r = v.partId+"|"+(v.combo||"")+"|"+(v.color||"");
+    if(!(r in byRelease)) byRelease[r] = vKeyExact(v);
+  });
   const parts = new Set(db.parts.map(p=>pKey(p.id)));
   let moved = 0;
   Object.keys(owned).forEach(k=>{
     if(exact.has(k) || parts.has(k)) return;
-    const target = byLoose[k.split("|").slice(0,3).join("|")];
+    const [partId, code, combo, color] = k.split("|");
+    const target = byLoose[k.split("|").slice(0,3).join("|")]
+                || (RETIRED_CODES.includes(code)
+                    ? byRelease[partId+"|"+(combo||"")+"|"+(color||"")] : null);
     if(!target || target === k) return;
     owned[target] = (owned[target]||0) + owned[k];
     delete owned[k];
@@ -1631,12 +1870,13 @@ function refreshOwnUI(btn){
    shown is how many complete boxes you have: the smallest count
    across the release's contents.
 
-   Random Boosters are excluded — you get one combo out of eight,
-   not all eight — and so are the -00 catch-all codes, which stand
-   in for many separately-sold items. Both use the per-combo
-   steppers instead.
+   Random Boosters are the one exception — you get one combo out of
+   eight, not all eight — and use their per-combo steppers instead.
+   Limited releases used to be excluded too, back when the three -00
+   codes each stood for dozens of items at once; now that every one
+   of them is its own product, a prize is as boxable as a starter.
    ------------------------------------------------------------ */
-const BOXABLE = t => t && t!=="Random Booster" && t!=="Special";
+const BOXABLE = t => t && t!=="Random Booster";
 
 function boxesOwned(code, items){
   const vs = items || db.variants.filter(v=>v.productCode===code);
@@ -1711,7 +1951,7 @@ function swatchColor(color){
    back, since a deletion can't be told apart from never having
    had the record.
    ============================================================ */
-const SEED_VERSION = 10;
+const SEED_VERSION = 11;
 
 function migrate(oldDb){
   const fresh = seed();
@@ -2198,10 +2438,11 @@ function findPartURL(p){
      1. the exact release page, when the product code maps to one
      2. the part's own kyoganken page, which documents its variations
      3. a web search, only if the part isn't on kyoganken at all
-   Step 2 matters because Takara Tomy numbers every limited, prize and
-   collab release BX-00 / UX-00 / CX-00, so those can never resolve to
-   one package page -- but they are still covered on the part's own
-   page, which beats dropping the reader into a search engine. */
+   Step 2 matters because limited, prize and collab releases carry no
+   catalogue number of their own, so this index gives them synthetic
+   ones and kyoganken has no package page to open -- but they are still
+   covered on the part's own page, which beats dropping the reader into
+   a search engine. */
 function findVariantURL(p, v){
   const pkg = kyogankenURL(v.productCode);
   if(pkg) return { url:pkg, direct:true, kind:"package" };
@@ -2471,13 +2712,12 @@ function renderProducts(){
       </div>`;
     }).join("");
 
-    const isCatchAll = /-00$/.test(code);
+    /* A release with no combo at all is a part handed out on its own, or
+       a set whose build nothing records — not a gap in the data. */
     const isSet = /Set|Deck/.test(m.type||"");
-    const leftHead = isCatchAll
-      ? "Individually released parts under this code"
-      : isSet ? "Spare parts included in the set"
+    const leftHead = isSet ? "Spare parts included in the set"
       : combos.length ? "Also recorded in this release"
-      : "Recorded parts — combos not yet reconstructed";
+      : "Released on their own, with no build recorded";
     const leftoverHTML = leftovers.length ? `
       <div class="leftover">
         <div class="lhead">${leftHead}</div>
@@ -2630,7 +2870,7 @@ function openDetail(id){
         <td>${(()=>{ const vf=findVariantURL(p,v);
           const label = p.kind==="bit" && p.fullName ? p.fullName : p.name;
           const tip = vf.kind==="package" ? "Open this release on "+hostLabel(vf.url)
-                    : vf.kind==="part"    ? v.productCode+" covers many limited releases — opening the "+esc(label)+" part page instead"
+                    : vf.kind==="part"    ? "No release page for "+v.productCode+" — opening the "+esc(label)+" part page instead"
                     : "Search the web";
           return `<a class="vsrc k-${vf.kind}" href="${vf.url}" target="_blank" rel="noopener noreferrer" title="${tip}">${
             vf.kind==="package" ? "&#8599;" : vf.kind==="part" ? "&#8901;&#8599;" : "&#63;"}</a>`;
